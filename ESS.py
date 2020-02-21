@@ -2,14 +2,6 @@ import numpy as np
 import random
 import pickle
 
-'''
-TODO
-
-- player class that compute best action
-- difference to make between game-state and state, game-state is the state of the game, state is [A, B]
-
-'''
-
 class State:
     
     def __init__(self, attacker, defender, levels, nb_pieces):
@@ -29,7 +21,6 @@ class State:
         self.isEnd = False
         self.boardHash = None
         
-        #self.turn_of = 'attacker' # init attacker plays first
         idxs = range(self.levels + 1)
         self.weights = np.power(2.0, [-(self.levels - i) for i in idxs])
         
@@ -42,11 +33,11 @@ class State:
         
         if sum(self.board[0]) >= 1: #if one or several pieces reaches the top
             self.isEnd = True
-            return -1
+            return 'attacker'
         
         elif np.count_nonzero(self.board) <= 1: #if there is no more pieces on the board or one piece
             self.isEnd = True
-            return 1
+            return 'defender'
         
         else:
             self.isEnd = False #not finished yet     
@@ -69,17 +60,6 @@ class State:
         self.board = np.roll(self.board, -self.width)
         
         self.coordinates = np.argwhere(self.board).tolist()
-        
-    def giveReward(self):
-        
-        result = self.winner()
-        # backpropagate reward
-        if result == 1:
-            #self.attacker.feedReward(0)
-            self.defender.feedReward(1)
-        else:
-            #self.attacker.feedReward(1)
-            self.defender.feedReward(0)
             
     def reset(self): # board reset
         
@@ -99,30 +79,38 @@ class State:
         
         '''
         
-        for i in range(rounds):
-            if i%1000 == 0:
-                print("Rounds {}".format(i))
-            while not self.isEnd:
-                # Attacker
+        attacker_reward = 0
+        defenser_reward = 0
+        
+        while not self.isEnd:
+            # Attacker
+            left_split, right_split = self.attacker.chooseAttackerAction()
 
-                left_split, right_split = self.attacker.chooseAttackerAction(self.coordinates)
+            # Defender
+            split_chosen = self.defender.chooseDefenderAction(left_split, right_split)
+            self.updateGameState(split_chosen)
+            
+            #board_hash = self.getHash()
+            #self.defender.addState(board_hash)
 
-                # Defender
+            win = self.winner()
+            if win is not None:
 
-                split_chosen = self.defender.chooseDefenderAction(left_split, right_split)
-                self.updateGameState(split_chosen)
-                board_hash = self.getHash()
-                self.defender.addState(board_hash)
+                # ended with attacker win or not
                 
-                win = self.winner()
-                if win is not None:
-                    # self.showBoard()
-                    # ended with attacker win or not
-                    self.giveReward()
-                    self.attacker.reset()
-                    self.defender.reset()
-                    self.reset()
-                    break   
+                if win == 'attacker':               
+                    attacker_reward += 1
+                    defenser_reward -= 1
+                    
+                else:
+                    attacker_reward -= 1
+                    defenser_reward += 1
+                    
+                #self.attacker.reset()
+                #self.defender.reset()
+                #self.reset()
+                
+                break   
         
 class Player:
     
@@ -145,17 +133,6 @@ class Player:
     def addState(self, left_split, righ_split):
         
         self.states.append(np.concatenate([left_split, right_split]))
-        
-    def feedReward(self, reward):
-        
-        for st in reversed(self.states):
-            
-            if self.states_value.get(st) is None:
-                
-                self.states_value[st] = 0
-           
-            self.states_value[st] += self.lr * (self.decay_gamma * reward - self.states_value[st])
-            reward = self.states_value[st]
             
     def reset(self):
         self.states = []
@@ -182,65 +159,22 @@ class Player:
             
         return coo_left, coo_right
     
-    def chooseDefenderAction(self, left_split, right_split, current_board):
-    
-        '''
-        choose action based on current estimation of the states
-
-        '''
+    def chooseDefenderAction(self, left_split, right_split):
     
         if np.random.uniform(0, 1) <= self.exp_rate:
-            # take random action
+            # take random action - exploration
             
             k = np.random.randint(low = 0, high = 2)
             
             chosen_split = left_split if k == 0 else right_split
             
+        else:        
+            # compute potential for each split to evaluate the most dangerous one
             
-        else:       
+            pot_left, pot_right = potential_fn(left_split), potential_fn(right_split)
             
-            value_max = -999
-
-            next_board_when_left_destroyed = current_board.copy()
-            next_board_when_right_destroyed = current_board.copy()
-
-            for y_, x_ in (left_split):
-                next_board_when_left_destroyed[y_, x_] = 0
-                
-            for y_, x_ in (right_split):
-                next_board_when_right_destroyed[y_, x_] = 0
-
-            next_board_when_left_destroyed  = np.roll(next_board_when_left_destroyed , -self.width)
-            next_board_when_right_destroyed  = np.roll(next_board_when_right_destroyed , -self.width)
-
-            next_left_boardHash = self.getHash(next_board_when_left_destroyed)
-            next_right_boardHash = self.getHash(next_board_when_right_destroyed)
-
-            value_left = 0 if self.states_value.get(next_boardHash_left) is None else self.states_value.get(next_boardHash_left)
-            value_right = 0 if self.states_value.get(next_boardHash_right) is None else self.states_value.get(next_boardHash_right)
-
-            if value_left or value_right >= value_max:
-                
-                if value_left > value_right:
-                    
-                    value = value_left
-                    chosen_split = left_split
-                    
-                else:
-                    
-                    value = value_right
-                    chosen_split = right_split
-                
-                value_max = value
-
-            '''
-            calculus of potential for each split to evaluate the most dangerous one
+            chosen_split = left_split if potA > potB else right_split #the chosen split is the split to destroy
             
-            potA = potential_fn(left_split)
-            potB = potential_fn(right_split)
-            
-            chosen_split = left_split if potA > potB else right_split
-            '''
         return chosen_split
 
             
