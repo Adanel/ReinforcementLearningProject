@@ -173,7 +173,7 @@ class Player:
             
             pot_left, pot_right = potential_fn(left_split), potential_fn(right_split)
             
-            chosen_split = left_split if potA > potB else right_split #the chosen split is the split to destroy
+            chosen_split = left_split if pot_left > pot_right else right_split #the chosen split is the split to destroy
             
         return chosen_split
 
