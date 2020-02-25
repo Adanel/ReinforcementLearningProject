@@ -11,7 +11,19 @@ class State:
         self.width = 5
         self.board = np.zeros((self.levels, self.width))
         
-        self.coordinates = [(random.randrange(1, self.levels), random.randrange(0, self.width)) for i in range(self.nb_pieces)]
+        self.coordinates = []
+        
+        for i in range(self.nb_pieces):
+    
+            y, x = random.randrange(1, self.levels), random.randrange(0, self.width)
+
+            while (y,x) in self.coordinates:
+
+                y, x = random.randrange(1, self.levels), random.randrange(0, self.width)
+
+            conc = (y,x)
+
+            self.coordinates.append(conc)
         
         for y, x in (self.coordinates):
             self.board[y, x] = 1 #assign coordinates to board
@@ -64,7 +76,19 @@ class State:
     def reset(self): # board reset
         
         self.board = np.zeros((self.levels, self.width))
-        self.coordinates = [(random.randrange(1, self.levels), random.randrange(0, self.width)) for i in range(self.nb_pieces)]
+        self.coordinates = []
+        
+        for i in range(self.nb_pieces):
+    
+            y, x = random.randrange(1, self.levels), random.randrange(0, self.width)
+
+            while (y,x) in self.coordinates:
+
+                y, x = random.randrange(1, self.levels), random.randrange(0, self.width)
+
+            conc = (y,x)
+
+            self.coordinates.append(conc)
       
         for y, x in (self.coordinates):
             self.board[y, x] = 1 #assign coordinates to board
