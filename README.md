@@ -1,12 +1,10 @@
 # ReinforcementLearningProject
 
-The goal of the project is to implement what was done in a [research paper about Deep Reinforcement Learning](https://arxiv.org/pdf/1711.02301.pdf) which focuses on a specific game, the Erdos-Selfridge-Spencer Game, and see how well state-of-the-art algorithms perform.
+The goal of the project was to take inspiration from what was done in this [research paper about Deep Reinforcement Learning](https://arxiv.org/pdf/1711.02301.pdf) which focuses on a specific game, the Erdos-Selfridge-Spencer Game, and see how well state-of-the-art algorithms perform.
 
-#### TODO
+#### What we did
 
-- Code a naive ESS Game
-- Train a defender, evaluate performance and generalization vs naive
-- Train an attacker, evaluate performance and generalization vs naive
-- Selfplay ?
+- We developed our own ESS game environment without using [gym](https://gym.openai.com/), an **openAI** library where famous environments like Cartpole or Pong are available.
+- We trained a defender against a random attacker using a reinforcement learning algorithm. We used the **Monte-Carlo** method for policy evaluation and policy control without exploring start.
 
 
